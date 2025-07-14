@@ -25,7 +25,6 @@ Welcome to this educational blog project on **SQL Injection (SQLi)** — one of 
 The blog is written in a simple, human-friendly tone and contains real-life examples, analogies, and step-by-step attack breakdowns.
 
 - `blog.md` → The main blog file  
-- `/images` → Contains blog banners and visual explanations  
 - `README.md` → This file  
 
 ---
@@ -54,7 +53,7 @@ Here's what you'll find in the blog:
 
 ## 📖 Read the Blog
 
-You can read the full blog post [here](#) (upload the blog and update with actual link or GitHub Pages URL).
+You can read the full blog post [here](#https://medium.com/@ananyadwivedi115/mastering-sql-injection-from-basics-to-real-world-exploitation-and-prevention-46945b5ff939) 
 
 ---
 
